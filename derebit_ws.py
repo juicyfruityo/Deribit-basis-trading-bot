@@ -66,7 +66,14 @@ class DeribitWS:
 
     @staticmethod
     def async_loop(api, message):
-        return asyncio.get_event_loop().run_until_complete(api(message))
+        return asyncio.run(api(message))
+
+    def execute_funcs(self, *funcs):
+        return asyncio.run(self.__execute_many_funcs(*funcs))
+
+    async def __execute_many_funcs(self, *funcs):
+        res = await asyncio.gather(*funcs)
+        return res
 
     def test_creds(self):
         response = self.async_loop(self.pub_api, json.dumps(self.auth_creds))
@@ -76,7 +83,7 @@ class DeribitWS:
             print("Auth creds are good, it worked")
 
     def __error_check(self, response):
-        if 'error' in response.keys():
+        if response.get('error') is not None:
             return response, 'error'
         else:
             return response, None
@@ -161,6 +168,21 @@ class DeribitWS:
         else:
             return -1, -1, err
 
+    async def get_bid_ask_async(self, instrument):
+        params = {
+            "instrument_name": instrument,
+            "depth": 1
+        }
+        self.msg["method"] = "public/get_order_book"
+        self.msg["params"] = params
+        response = await self.pub_api(json.dumps(self.msg))
+        order_book, err = self.__error_check(response)
+
+        if err is None:
+            return order_book['result']['best_bid_price'], order_book['result']['best_ask_price'], err
+        else:
+            return -1, -1, err
+
     def get_quote(self, instrument):
         params = {
             "instrument_name": instrument
@@ -202,6 +224,16 @@ class DeribitWS:
         self.msg["method"] = "private/get_order_state"
         self.msg["params"] = params
         positions, err = self.__error_check(self.async_loop(self.priv_api, json.dumps(self.msg)))
+        return positions, err
+
+    async def get_order_state_async(self, order_id):
+        params = {
+            "order_id": order_id
+        }
+        self.msg["method"] = "private/get_order_state"
+        self.msg["params"] = params
+        response = await self.priv_api(json.dumps(self.msg))
+        positions, err = self.__error_check(response)
         return positions, err
 
     def get_positions(self, instrument, kind="future"):

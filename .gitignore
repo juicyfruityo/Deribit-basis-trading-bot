@@ -1,2 +1,4 @@
 application
 my_data.py
+*.ipynb
+test_asyncio.py
