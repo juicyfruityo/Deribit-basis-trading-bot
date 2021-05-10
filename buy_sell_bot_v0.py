@@ -14,8 +14,6 @@ import matplotlib.pyplot as plt
 import my_data
 from derebit_ws import DeribitWS
 
-client_id = my_data.client_id_test
-client_secret = my_data.client_secret_test
 
 
 class BasisTradingBot:
@@ -208,7 +206,7 @@ class BasisTradingBot:
         else:
             self.log.info('Start check for resseting order')
 
-            max_price_diff = 1.5  # Разница цены, при которой надо переставить ордер.
+            max_price_diff = 1.2  # Разница цены, при которой надо переставить ордер.
             # Если разница достаточно большая, то надо закрыть ордер и открыть заново.
             expr = (order_price - price_base <= self.data['basis'] - max_price_diff) \
                     or (order_price - price_base >= self.data['basis'] + max_price_diff)
@@ -254,13 +252,15 @@ class BasisTradingBot:
 
 
 def main():
-    ws = DeribitWS(client_id, client_secret, test=True)
+    client_id = my_data.client_id
+    client_secret = my_data.client_secret
+    ws = DeribitWS(client_id, client_secret, test=False)
 
     # basis = 20  # При открытии позиции
-    basis = 90  # При закрытии позиции, кратный 0.05
+    basis = 15  # При закрытии позиции, кратный 0.05
 
-    pair_base = 'ETH-PERPETUAL'  # Закрываем по маркету
-    pair_second = 'ETH-25JUN21'  # Выставляем лимитный ордер
+    pair_base = 'ETH-21MAY21'  # Закрываем по маркету, цена должна быть ниже
+    pair_second = 'ETH-28MAY21'  # Выставляем лимитный ордер
 
     # buy/sell
     # side_base = 'buy'
@@ -270,7 +270,7 @@ def main():
     side_second = 'buy'
 
     # Размер ордера в USDT
-    amount = 30000
+    amount = 3
     amount_base = amount
     amount_second = amount
 
