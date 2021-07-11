@@ -6,6 +6,11 @@ import time
 import logging
 import sys
 
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
 import my_data
 from derebit_ws import DeribitWS
 
@@ -180,8 +185,7 @@ class BasisTradingBot:
         self.log.info(f'End get bid ask prices for second, err = {err_second}')
 
         price_base = bid_base if side == 'sell' else ask_base
-        # price_second = bid_second if side == 'buy' else ask_second
-        price_second = bid_second if side == 'sell' else ask_second
+        price_second = bid_second if side == 'buy' else ask_second
         self.log.info(f'====  Current basis = {round(price_second - price_base, 2)}' \
             + f', base price={price_base}, order price={order_price}, diff={round(order_price - price_base, 2)}  =====')
 
@@ -202,12 +206,10 @@ class BasisTradingBot:
         else:
             self.log.info('Start check for resseting order')
 
-            # Разница цены, при которой надо переставить ордер.
-            max_price_diff_up = self.data['max_price_diff_up']  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
-            max_price_diff_down = self.data['max_price_diff_down']  # Переставлять ордер, если текущий базис снизился на данное значение. (Надо ставить больше при выходже из позиции)
+            max_price_diff = 1.2  # Разница цены, при которой надо переставить ордер.
             # Если разница достаточно большая, то надо закрыть ордер и открыть заново.
-            expr = (order_price - price_base <= self.data['basis'] - max_price_diff_down) \
-                    or (order_price - price_base >= self.data['basis'] + max_price_diff_up)
+            expr = (order_price - price_base <= self.data['basis'] - max_price_diff) \
+                    or (order_price - price_base >= self.data['basis'] + max_price_diff)
             if expr:
                 self.log.info('Start resetting order')
                 is_trade, err = self.cancel_order(order_info)
@@ -254,11 +256,11 @@ def main():
     client_secret = my_data.client_secret
     ws = DeribitWS(client_id, client_secret, test=False)
 
-    # basis = 90  # При открытии позиции
-    basis = 50  # При закрытии позиции, кратный 0.05
+    # basis = 20  # При открытии позиции
+    basis = 15  # При закрытии позиции, кратный 0.05
 
-    pair_base = 'ETH-25JUN21'  # Закрываем по маркету, цена должна быть ниже
-    pair_second = 'ETH-24SEP21'  # Выставляем лимитный ордер
+    pair_base = 'ETH-21MAY21'  # Закрываем по маркету, цена должна быть ниже
+    pair_second = 'ETH-28MAY21'  # Выставляем лимитный ордер
 
     # buy/sell
     # side_base = 'buy'
@@ -266,9 +268,6 @@ def main():
 
     side_base = 'sell'
     side_second = 'buy'
-
-    max_price_diff_up = 1.2  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
-    max_price_diff_down = 5
 
     # Размер ордера в USDT
     amount = 3
@@ -283,10 +282,12 @@ def main():
     data['side_second'] = side_second
     data['amount_base'] = amount_base
     data['amount_second'] = amount_second
-    data['max_price_diff_up'] = max_price_diff_up
-    data['max_price_diff_down'] = max_price_diff_down
 
+    # trade_done = False
+
+    # while not trade_done:
     trading_bot = BasisTradingBot(data, ws)
+
     try:
         trading_bot.make_trade()
         print('Bot closed because trade done')
@@ -299,3 +300,24 @@ def main():
 if __name__ == '__main__':
 
     main()
+
+    # ws = DeribitWS(client_id, client_secret, test=False)
+
+    # for i in range(1000):
+    #     eth_perp = get_quote('ETH-PERPETUAL')
+    #     eth_7may = get_quote('ETH-7MAY21')
+    #     print(f'PERP = {eth_perp},  7MAY = {eth_7may}')
+    #     time.sleep(1)
+
+    # order_book_perp = get_order_book('ETH-PERPETUAL', 5)
+    # order_book_7may = get_order_book('ETH-7MAY21', 5)
+
+    # print(order_book_perp)
+
+    # for i in range(20):
+    #     bid_perp, ask_perp = get_bid_ask('ETH-PERPETUAL')
+    #     bid_7may, ask_7may = get_bid_ask('ETH-7MAY21')
+    
+    #     print(f'PERP: bid={bid_perp} ask={ask_perp};  7MAY: bid={bid_7may} ask={ask_7may}; DIFF: buy={bid_7may-ask_perp} sell={ask_7may-bid_perp}')
+
+    #     time.sleep(1)
