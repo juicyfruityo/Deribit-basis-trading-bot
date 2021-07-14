@@ -83,10 +83,7 @@ class DeribitWS:
             print("Auth creds are good, it worked")
 
     def __error_check(self, response):
-        if response.get('error') is not None:
-            return response, 'error'
-        else:
-            return response, None
+        return response, response.get('error')
 
     def market_order(self, instrument, amount, side):
         params = {
@@ -262,10 +259,10 @@ class DeribitWS:
 
 if __name__ == '__main__':
 
-    ws = DeribitWS(client_id, client_secret, test=False)
+    ws = DeribitWS(client_id, client_secret, test=True)
 
     start = datetime_to_unix("2021-04-01 00:00") * 1000
     end = datetime_to_unix("2021-04-02 00:00") * 1000
     pair = 'ETH-PERPETUAL'
 
-    print(ws.get_funding_rate_history(pair, start, end))
+    print(ws.available_instruments("BTC"))

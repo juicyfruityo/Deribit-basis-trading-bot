@@ -56,7 +56,6 @@ class BasisTradingBot:
 
         bid_base, ask_base, err = self.ws.get_bid_ask(self.data['pair_base'])
         self.log.info(f'End get bid ask prices for base, err = {err}')
-
         # bid_second, ask_second, err = self.ws.get_bid_ask(self.data['pair_second'])
         # self.log.info(f'End get bid ask prices for second, err = {err}')
         
@@ -77,9 +76,9 @@ class BasisTradingBot:
 
         post_only = True
         reduce_only = False
-        response, err = self.ws.limit_order(pair, amount, side, order_price, post_only, reduce_only)
+        response, err = self.ws.limit_order(pair, amount, side, round(order_price), post_only, reduce_only)
         self.log.info(f'Make order, err={err}')
-
+        print(response)
         order_id = response['result']['order']['order_id']
         order_price = response['result']['order']['price']
         order_info = {
@@ -252,13 +251,13 @@ class BasisTradingBot:
 def main():
     client_id = my_data.client_id
     client_secret = my_data.client_secret
-    ws = DeribitWS(client_id, client_secret, test=False)
+    ws = DeribitWS(client_id, client_secret, test=True)
 
     # basis = 90  # При открытии позиции
     basis = 50  # При закрытии позиции, кратный 0.05
 
-    pair_base = 'ETH-25JUN21'  # Закрываем по маркету, цена должна быть ниже
-    pair_second = 'ETH-24SEP21'  # Выставляем лимитный ордер
+    pair_base = 'BTC-PERPETUAL'  # Закрываем по маркету, цена должна быть ниже
+    pair_second = 'BTC-24JUN22'  # Выставляем лимитный ордер
 
     # buy/sell
     # side_base = 'buy'
@@ -271,7 +270,7 @@ def main():
     max_price_diff_down = 5
 
     # Размер ордера в USDT
-    amount = 3
+    amount = 10
     amount_base = amount
     amount_second = amount
 
