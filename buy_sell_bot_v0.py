@@ -35,29 +35,36 @@ class BasisTradingBot:
     # 7) надо придумать как борорться с проскальзыванием между проверками.
     # 8) надо аккуратно заканчивать работу программы, т.к. сейчас она обрывается посреди действия.
     
-    def __init__(self, data, ws):
+    def __init__(self, data, ws, tg_bot):
         self.data = data
         self.ws = ws
         self.current_orders = {}  # {pair: [order_info]}
         self.current_positions = {}  # {pair: [positions]}
-
+        self.tg_bot = tg_bot
+        self.log_to_tg = True
         logging.basicConfig(level=logging.INFO, filename='application',
                             format='%(asctime)s  %(levelname)s:  %(message)s' )
         self.log = logging.getLogger(__name__)
-        self.log.info("\n\n====================================================================")
-        self.log.info("Starting application")
+        self.logging_bot("\n\n====================================================================")
+        self.logging_bot("Starting application")
+
+
+    def logging_bot(self, msg):
+        self.log.info(msg)
+        if self.log_to_tg:
+            self.tg_bot.send_message(-561707350, msg)
 
     def put_order(self):
         # TODO: сделать обработку ошибок,
         # добавлять открытые ордера в список.
         # ? сделать структуру для ордеров
 
-        self.log.info('In put_order')
+        self.logging_bot('In put_order')
 
         bid_base, ask_base, err = self.ws.get_bid_ask(self.data['pair_base'])
-        self.log.info(f'End get bid ask prices for base, err = {err}')
+        self.logging_bot(f'End get bid ask prices for base, err = {err}')
         # bid_second, ask_second, err = self.ws.get_bid_ask(self.data['pair_second'])
-        # self.log.info(f'End get bid ask prices for second, err = {err}')
+        # self.logging_bot(f'End get bid ask prices for second, err = {err}')
         
 
         amount = self.data['amount_second']
@@ -69,15 +76,15 @@ class BasisTradingBot:
         # Т.к. я делаю post_only заявку, то можно указать любую цену, она попадёт в стакан.
         if side == 'buy':
             order_price = bid_base + basis
-            self.log.info(f'Set limit order: pair={pair}, side={side}, price={order_price}, amount={amount}; pair_base={self.data["pair_base"]}: price={bid_base}')
+            self.logging_bot(f'Set limit order: pair={pair}, side={side}, price={order_price}, amount={amount}; pair_base={self.data["pair_base"]}: price={bid_base}')
         elif side == 'sell':
             order_price = ask_base + basis
-            self.log.info(f'Set limit order: pair={pair}, side={side}, price={order_price}, amount={amount}; pair_base={self.data["pair_base"]}: price={ask_base}')
+            self.logging_bot(f'Set limit order: pair={pair}, side={side}, price={order_price}, amount={amount}; pair_base={self.data["pair_base"]}: price={ask_base}')
 
         post_only = True
         reduce_only = False
         response, err = self.ws.limit_order(pair, amount, side, round(order_price), post_only, reduce_only)
-        self.log.info(f'Make order, err={err}')
+        self.logging_bot(f'Make order, err={err}')
         print(response)
         order_id = response['result']['order']['order_id']
         order_price = response['result']['order']['price']
@@ -89,20 +96,20 @@ class BasisTradingBot:
         return err
 
     def market_base(self, amount):
-        self.log.info('Start making market order')
+        self.logging_bot('Start making market order')
 
         pair_base = self.data['pair_base']
         # amount = self.data['amount_base']
         side = self.data['side_base']
 
         response, err = self.ws.market_order(pair_base, amount, side)
-        self.log.info(f'End making market order, err={err} \n\t\t\t\t\t\t\t\t Trade DONE amount {amount} out of {self.data["amount_base"]}')
+        self.logging_bot(f'End making market order, err={err} \n\t\t\t\t\t\t\t\t Trade DONE amount {amount} out of {self.data["amount_base"]}')
         
         pair_second = self.data['pair_second']
         order_price = self.current_orders[pair_second]['order_price']
         price_base = response['result']['order']['average_price']
         side_second = self.data['side_second']
-        self.log.info(f'basis={round(order_price - price_base, 2)}; {side} {pair_base}: price={price_base}; {side_second} {pair_second}: price={order_price};')
+        self.logging_bot(f'basis={round(order_price - price_base, 2)}; {side} {pair_base}: price={price_base}; {side_second} {pair_second}: price={order_price};')
 
         # Т.к. по сути ордер один, то можно закрывать бота.
         print(f'Trade done amount {amount} out of {self.data["amount_base"]}')
@@ -116,14 +123,14 @@ class BasisTradingBot:
         return True, err  # Работа бота завершена.
 
     def cancel_order(self, order_info):
-        self.log.info('In cancel_order')
+        self.logging_bot('In cancel_order')
         order_id, amount_done = order_info['order_id'], order_info['filled_amount']
         response, err = self.ws.cancel_order(order_id)
-        self.log.info(f'End cancelling order, err = {err}')
+        self.logging_bot(f'End cancelling order, err = {err}')
 
         # Знчит ордер сполнился полностью.
         if err == 'error':
-            self.log.info('In cancel_order order fully filled')
+            self.logging_bot('In cancel_order order fully filled')
             is_trade, err = self.market_base(self.data['amount_base'])
             return is_trade, err
 
@@ -131,8 +138,8 @@ class BasisTradingBot:
         pair_second = self.data['pair_second']
         filled_amount = response['result']['filled_amount']
         if filled_amount > 0:
-            self.log.info(f'In cancel_order order filled_amount={filled_amount}')
-            self.log.info(response['result'])
+            self.logging_bot(f'In cancel_order order filled_amount={filled_amount}')
+            self.logging_bot(response['result'])
             if self.current_orders[pair_second]['filled_amount'] < filled_amount:
                 amount = filled_amount - self.current_orders[pair_second]['filled_amount']
                 self.current_orders[pair_second]['filled_amount'] = filled_amount
@@ -150,7 +157,7 @@ class BasisTradingBot:
         
         '''
         # TODO: надо добавить асинхронное выполнение запроса цены и запроса инфы об ордере.
-        self.log.info('In check_order')
+        self.logging_bot('In check_order')
 
         pair_base = self.data['pair_base']
         pair_second = self.data['pair_second']
@@ -172,16 +179,16 @@ class BasisTradingBot:
         bid_second, ask_second, err_second = second_bid_ask
         err = err_base
 
-        # self.log.info('Start check order state')
+        # self.logging_bot('Start check order state')
         # response, err = self.ws.get_order_state_async(order_id)
-        self.log.info(f'End check order state of order={order_id}, err = {err_order_state}')
-        self.log.info(f'End get bid ask prices for base, err = {err_base}')
-        self.log.info(f'End get bid ask prices for second, err = {err_second}')
+        self.logging_bot(f'End check order state of order={order_id}, err = {err_order_state}')
+        self.logging_bot(f'End get bid ask prices for base, err = {err_base}')
+        self.logging_bot(f'End get bid ask prices for second, err = {err_second}')
 
         price_base = bid_base if side == 'sell' else ask_base
         # price_second = bid_second if side == 'buy' else ask_second
         price_second = bid_second if side == 'sell' else ask_second
-        self.log.info(f'====  Current basis = {round(price_second - price_base, 2)}' \
+        self.logging_bot(f'====  Current basis = {round(price_second - price_base, 2)}' \
             + f', base price={price_base}, order price={order_price}, diff={round(order_price - price_base, 2)}  =====')
 
         order_state = response['result']['order_state']
@@ -189,8 +196,8 @@ class BasisTradingBot:
 
         # Ордер выполнился. Надо выполнить по маркету основной фьючерс.
         if filled_amount > 0:
-            self.log.info(f'In check_order order filled_amount={filled_amount} out of {self.data["amount_second"]}')
-            self.log.info(response['result'])
+            self.logging_bot(f'In check_order order filled_amount={filled_amount} out of {self.data["amount_second"]}')
+            self.logging_bot(response['result'])
             if self.current_orders[pair_second]['filled_amount'] < filled_amount:
                 amount = filled_amount - self.current_orders[pair_second]['filled_amount']
                 self.current_orders[pair_second]['filled_amount'] = filled_amount
@@ -199,7 +206,7 @@ class BasisTradingBot:
 
         # Ордер не выполнился. Надо проверить, требуется ли его переставить.
         else:
-            self.log.info('Start check for resseting order')
+            self.logging_bot('Start check for resseting order')
 
             # Разница цены, при которой надо переставить ордер.
             max_price_diff_up = self.data['max_price_diff_up']  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
@@ -208,34 +215,34 @@ class BasisTradingBot:
             expr = (order_price - price_base <= self.data['basis'] - max_price_diff_down) \
                     or (order_price - price_base >= self.data['basis'] + max_price_diff_up)
             if expr:
-                self.log.info('Start resetting order')
+                self.logging_bot('Start resetting order')
                 is_trade, err = self.cancel_order(order_info)
                 if is_trade:
                     return True, err
 
                 err = self.put_order()
-                self.log.info('End resetting order')
+                self.logging_bot('End resetting order')
 
-            self.log.info('End check for resseting order')
+            self.logging_bot('End check for resseting order')
 
-        self.log.info('End check_order \n')
+        self.logging_bot('End check_order \n')
 
         return False, err
 
     def close_bot(self):
-        self.log.info('\n')
-        self.log.info('In close bot')
-        self.log.info('Start closing bot')
+        self.logging_bot('\n')
+        self.logging_bot('In close bot')
+        self.logging_bot('Start closing bot')
 
         pair_second = self.data['pair_second']
         order_info = self.current_orders[pair_second]
         err = self.cancel_order(order_info)
 
-        self.log.info(f'End closing bot, err={err}')
+        self.logging_bot(f'End closing bot, err={err}')
 
 
     def make_trade(self):
-        self.log.info("In make_trade")
+        self.logging_bot("In make_trade")
         # Начальный ордер.
         err = self.put_order()
 
