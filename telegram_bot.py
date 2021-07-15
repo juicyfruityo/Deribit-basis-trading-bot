@@ -8,6 +8,8 @@ from derebit_ws import *
 import my_data
 bot = telebot.TeleBot("1836894761:AAFx_ZoDxA59a63FTlpBGTbeHLYvexeBla8")
 ws = DeribitWS(my_data.client_id, my_data.client_secret, test=True)
+num_of_running_bots = 0
+MAX_BOTS_RUNNING = 1
 
 class BotEntity:
     
@@ -23,16 +25,39 @@ class BotEntity:
         "max_price_diff_down": 5,
         "pair_base": "BTC-PERPETUAL",
         "pair_second": 'BTC-24JUN22',
+        "name": name,
         }
         self.name = name
         self.params = params
         self.is_working = False
     
-    def start():
-        pass
+    def trading_bot_loop(self):
+        global num_of_running_bots 
+        trading_bot = BasisTradingBot(self.params, ws, bot)
+        try:
+            trading_bot.make_trade()
+            if self.params["is_working"]:
+                bot.send_message(-561707350, 'Bot closed because trade done')
+                self.params["is_working"] = False
+            else:
+                bot.send_message(-561707350, 'Bot closed through tg')
+            num_of_running_bots -= 1
+            trading_bot.close_bot()
+        except KeyboardInterrupt:
+            trading_bot.close_bot()
+            bot.send_message(-561707350, 'Bot closed by KeyboardInterrupt')
+            num_of_running_bots -= 1
+
+    def start(self):
+        global num_of_running_bots 
+        self.params["is_working"] = True
+        self.worker = Thread(target=self.trading_bot_loop)
+        self.worker.start()
+        num_of_running_bots += 1
     
-    def stop():
-        pass
+    def stop(self):
+        self.params["is_working"] = False
+        self.worker.join()
 
     def info(self):
         return dict_to_str(self.params)
@@ -59,6 +84,11 @@ def send_welcome(message):
     /stop_bot - команда для завершения работы basis_trading_bot (Все открытые ордера будут отменены). В ходе ее выполнения нужно указать имя требуемого бота. \
     ")
 
+
+@bot.message_handler(commands=['clear'])
+def clear(message):
+    msg = bot.reply_to(message, 'Кнопки убраны', reply_markup=types.ReplyKeyboardRemove())
+
 @bot.message_handler(commands=['create_bot'])
 def start_bot(message):
     msg = bot.reply_to(message, 'Введите название бота: ')
@@ -68,11 +98,31 @@ def start_bot(message):
 def start_bot(message):
     if len(bots) == 0:
         bot.reply_to(message, 'На данный момент нет ни одного созданного бота.')
+    elif num_of_running_bots >= MAX_BOTS_RUNNING:
+        bot.reply_to(message, f'Максимальное количество запущенных ботов не может прервышать {MAX_BOTS_RUNNING}.')
     else:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(*bots.keys())
         msg = bot.reply_to(message, 'Выберите бота.', reply_markup=keyboard)
         bot.register_next_step_handler(msg, start)
+
+@bot.message_handler(commands=['stop_bot'])
+def stop_bot(message):
+    if len(bots) == 0:
+        bot.reply_to(message, 'На данный момент нет ни одного созданного бота.')
+    else:
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*bots.keys())
+        msg = bot.reply_to(message, 'Выберите бота.', reply_markup=keyboard)
+        bot.register_next_step_handler(msg, stop)
+
+def stop(message):
+    if message.text not in bots:
+        bot.reply_to(message, 'Нет бота с данным именем.', reply_markup=types.ReplyKeyboardRemove())
+    else:
+        basis_bot = bots[message.text]
+        basis_bot.stop()
+        bot.reply_to(message, 'Бот остановлен.', reply_markup=types.ReplyKeyboardRemove())
 
 def start_trading_bot(basis_bot):
     trading_bot = BasisTradingBot(basis_bot.params, ws, bot)
@@ -89,9 +139,8 @@ def start(message):
         bot.reply_to(message, 'Нет бота с данным именем.', reply_markup=types.ReplyKeyboardRemove())
     else:
         basis_bot = bots[message.text]
-        t = Thread(target=start_trading_bot, args=[basis_bot])
-        t.start()
-
+        basis_bot.start()
+        bot.reply_to(message, 'Бот запущен.', reply_markup=types.ReplyKeyboardRemove())
 
 def create_bot_name(message):
     if message.text in bots:
