@@ -116,6 +116,27 @@ def stop_bot(message):
         msg = bot.reply_to(message, 'Выберите бота.', reply_markup=keyboard)
         bot.register_next_step_handler(msg, stop)
 
+@bot.message_handler(commands=['change_parametrs'])
+def change_params(message):
+    if len(bots) == 0:
+        bot.reply_to(message, 'На данный момент нет ни одного созданного бота.')
+    else:
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*bots.keys())
+        msg = bot.reply_to(message, 'Выберите бота.', reply_markup=keyboard)
+        bot.register_next_step_handler(msg, change)
+
+def change(message):
+    if message.text not in bots:
+        bot.reply_to(message, 'Нет бота с данным именем.', reply_markup=types.ReplyKeyboardRemove())
+    else:
+        basis_bot = bots[message.text]
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*basis_bot.params.keys(), "Завершить")
+        msg = bot.reply_to(message, 
+        f"Текущие параметры бота:{dict_to_str(basis_bot.params)}Выберите параметр который хотите изменить", reply_markup=keyboard)
+        bot.register_next_step_handler(msg, register_parametr, basis_bot)
+
 def stop(message):
     if message.text not in bots:
         bot.reply_to(message, 'Нет бота с данным именем.', reply_markup=types.ReplyKeyboardRemove())
@@ -190,7 +211,7 @@ def register_parametr(message, basis_bot):
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add("Да", "Нет")
         msg = bot.reply_to(message, 
-        f"Текущие параметры бота:{dict_to_str(basis_bot.params)}Создать бота?", reply_markup=keyboard)
+        f"Текущие параметры бота:{dict_to_str(basis_bot.params)}Завершить настройку параметров?", reply_markup=keyboard)
         bot.register_next_step_handler(msg, create_bot, basis_bot)
 
 def register_msg(message, basis_bot, key):
@@ -203,9 +224,9 @@ def register_msg(message, basis_bot, key):
 def create_bot(message, basis_bot):
     if message.text == "Да":
         bots[basis_bot.name] = basis_bot
-        bot.reply_to(message, "Создание бота завершено.", reply_markup=types.ReplyKeyboardRemove())
+        bot.reply_to(message, "Параметры успешно сохранены.", reply_markup=types.ReplyKeyboardRemove())
     if message.text == "Нет":
-        bot.repy_to(message, "Бот не был создан.", reply_markup=types.ReplyKeyboardRemove())
+        bot.repy_to(message, "Создание/изменение бота отменено.", reply_markup=types.ReplyKeyboardRemove())
 
 
 @bot.message_handler(commands=['bot_info'])
