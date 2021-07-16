@@ -168,8 +168,15 @@ def choose_instrument(message, basis_bot, instruments):
     msg = bot.reply_to(message, "Выберите второй интсрумент", reply_markup=keyboard)
     bot.register_next_step_handler(msg, change_parametrs, basis_bot)
 
-def change_parametrs(message, basis_bot):
+def choose_second_instrument(message, basis_bot):
     basis_bot.params["pair_second"] = message.text
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*basis_bot.params.keys(), "Завершить")
+    msg = bot.reply_to(message, 
+    f"Текущие параметры бота:{dict_to_str(basis_bot.params)}Выберите параметр который хотите изменить", reply_markup=keyboard)
+    bot.register_next_step_handler(msg, register_parametr, basis_bot)
+
+def change_parametrs(message, basis_bot):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*basis_bot.params.keys(), "Завершить")
     msg = bot.reply_to(message, 
