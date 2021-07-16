@@ -141,7 +141,6 @@ def change(message):
         f"Текущие параметры бота:{dict_to_str(basis_bot.params)}Выберите параметр который хотите изменить", reply_markup=keyboard)
         bot.register_next_step_handler(msg, register_parametr, basis_bot)
 
-
 def stop(message):
     if message.text not in bots:
         bot.reply_to(message, 'Нет бота с данным именем.', reply_markup=types.ReplyKeyboardRemove())
