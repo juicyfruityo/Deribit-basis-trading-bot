@@ -97,6 +97,7 @@ class BasisTradingBot:
         response, err = self.ws.limit_order(pair, amount, side, order_price, post_only, reduce_only)
         # print(response)
         self.logging_bot(f'Make order, err={err}')
+        print(response)
         order_id = response['result']['order']['order_id']
         order_price = response['result']['order']['price']
         order_info = {

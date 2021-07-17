@@ -8,7 +8,7 @@ from derebit_ws import *
 import my_data
 
 bot = telebot.TeleBot("1836894761:AAFx_ZoDxA59a63FTlpBGTbeHLYvexeBla8")
-ws = DeribitWS(my_data.client_id, my_data.client_secret, test=False)
+ws = DeribitWS(my_data.client_id, my_data.client_secret, test=True)
 num_of_running_bots = 0
 MAX_BOTS_RUNNING = 1
 
@@ -25,7 +25,7 @@ class BotEntity:
         "max_price_diff_up": 1.2,
         "max_price_diff_down": 5,
         "pair_base": "ETH-PERPETUAL",
-        "pair_second": 'ETH-30JUL21',
+        "pair_second": 'ETH-24SEP21',
         "name": name,
         }
         self.name = name
@@ -252,14 +252,7 @@ def print_bot_info(message):
 
 
 def main():
-    t = Thread(target=bot.polling)
-    try:
-        t.start()
-        while(t.is_alive):
-            pass
-    except KeyboardInterrupt:
-        bot.stop_polling()
-        t.join()
+    bot.polling(none_stop=True, interval=1, timeout=100)
 
 if __name__ == '__main__':
     main()
