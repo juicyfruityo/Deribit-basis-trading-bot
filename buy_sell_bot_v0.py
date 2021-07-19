@@ -51,7 +51,7 @@ class BasisTradingBot:
         self.tg_bot = tg_bot
         self.log_to_tg = True
 
-        logging.basicConfig(level=logging.INFO, filename='application',
+        logging.basicConfig(level=logging.INFO, filename='application_' + data['name'],
                             format='%(asctime)s  %(levelname)s:  %(message)s' )
         self.log = logging.getLogger(__name__)
         self.logging_bot("\n\n====================================================================", True)

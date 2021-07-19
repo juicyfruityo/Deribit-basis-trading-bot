@@ -8,9 +8,9 @@ from derebit_ws import *
 import my_data
 
 bot = telebot.TeleBot("1836894761:AAFx_ZoDxA59a63FTlpBGTbeHLYvexeBla8")
-ws = DeribitWS(my_data.client_id, my_data.client_secret, test=True)
+ws = DeribitWS(my_data.client_id, my_data.client_secret, test=False)
 num_of_running_bots = 0
-MAX_BOTS_RUNNING = 1
+MAX_BOTS_RUNNING = 4
 
 class BotEntity:
     
@@ -25,7 +25,7 @@ class BotEntity:
         "max_price_diff_up": 1.2,
         "max_price_diff_down": 5,
         "pair_base": "ETH-PERPETUAL",
-        "pair_second": 'ETH-24SEP21',
+        "pair_second": 'ETH-30JUL21',
         "name": name,
         }
         self.name = name
@@ -252,7 +252,18 @@ def print_bot_info(message):
 
 
 def main():
-    bot.polling(none_stop=True, interval=1, timeout=100)
+    # bot.polling(none_stop=True, interval=1, timeout=100)
+    while True:
+        try:
+            bot.polling(none_stop=True, interval=1, timeout=100)
+        except KeyboardInterrupt:
+            # Требуется два раза подряд нажать CTRL-C
+            bot.stop_bot()
+            print('Telegram Bot Closed')
+            break
+        except Exception as e:
+            print(f'New Exception Raised:   {e}')
+            time.sleep(15)
 
 if __name__ == '__main__':
     main()
