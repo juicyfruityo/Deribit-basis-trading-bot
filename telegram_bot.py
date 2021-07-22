@@ -5,10 +5,16 @@ from telebot import types
 from buy_sell_bot_v0 import *
 import json
 from derebit_ws import *
+
+# Содержит:
+# client_id = 'ХХХ'
+# client_secret = 'XXX' - для доступа к API телеграм боту
+# api_keys = {0: {'client_id': 'XXX', 'client_secret': 'XXX'}} - для доступа к API трейд ботам
 import my_data
 
+TEST = False
 bot = telebot.TeleBot("1836894761:AAFx_ZoDxA59a63FTlpBGTbeHLYvexeBla8")
-ws = DeribitWS(my_data.client_id, my_data.client_secret, test=False)
+ws = DeribitWS(my_data.client_id, my_data.client_secret, test=TEST)
 num_of_running_bots = 0
 MAX_BOTS_RUNNING = 4
 
@@ -18,12 +24,12 @@ class BotEntity:
         if params is None:
             params = {
         'basis': 50,                
-        "side_base": "buy",
-        "side_second": "sell",
+        "side_base": "sell",
+        "side_second": "buy",
         "amount_base": 1,
         "amount_second": 1,
-        "max_price_diff_up": 1.2,
-        "max_price_diff_down": 5,
+        "max_price_diff_up": 1.,
+        "max_price_diff_down": 3.2,
         "pair_base": "ETH-PERPETUAL",
         "pair_second": 'ETH-30JUL21',
         "name": name,
@@ -34,20 +40,25 @@ class BotEntity:
     
     def trading_bot_loop(self):
         global num_of_running_bots 
-        trading_bot = BasisTradingBot(self.params, ws, bot)
+
+        client_id = my_data.api_keys[num_of_running_bots]['client_id']
+        client_secret = my_data.api_keys[num_of_running_bots]['client_secret']
+        ws_local = DeribitWS(client_id, client_secret, test=TEST)
+        trading_bot = BasisTradingBot(self.params, ws_local, bot)
+
         try:
             trading_bot.make_trade()
             if self.params["is_working"]:
-                bot.send_message(-561707350, 'Bot closed because trade done')
+                bot.send_message(-561707350, 'Bot closed because trade done ' + self.params['name'])
                 self.params["is_working"] = False
             else:
                 trading_bot.close_bot()
-                bot.send_message(-561707350, 'Bot closed through tg')
+                bot.send_message(-561707350, 'Bot closed through tg ' + self.params['name'])
             num_of_running_bots -= 1
             
         except KeyboardInterrupt:
             trading_bot.close_bot()
-            bot.send_message(-561707350, 'Bot closed by KeyboardInterrupt')
+            bot.send_message(-561707350, 'Bot closed by KeyboardInterrupt '  + self.params['name'])
             num_of_running_bots -= 1
 
     def start(self):
@@ -65,7 +76,35 @@ class BotEntity:
         return dict_to_str(self.params)
 
 
-bots = {"Test": BotEntity("Test")}
+params_1 = {
+        'basis': -2,                
+        "side_base": "sell",
+        "side_second": "buy",
+        "amount_base": 10,
+        "amount_second": 10,
+        "max_price_diff_up": 1.,
+        "max_price_diff_down": 3.2,
+        "pair_base": "ETH-30JUL21",
+        "pair_second": 'ETH-24SEP21',
+        "name": 'Test',
+        }
+params_2 = {
+        'basis': 5,             
+        "side_base": "buy",
+        "side_second": "sell",
+        "amount_base": 10,
+        "amount_second": 10,
+        "max_price_diff_up": 3.2,
+        "max_price_diff_down": 1.,
+        "pair_base": "ETH-30JUL21",
+        "pair_second": 'ETH-24SEP21',
+        "name": 'Test2',
+        }
+bots = {
+    "Test": BotEntity("Test", params_1),
+    "Test2": BotEntity("Test2", params_2)
+}
+
 
 
 def dict_to_str(d):

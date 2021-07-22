@@ -35,7 +35,7 @@ class BasisTradingBot:
     # 7) надо придумать как борорться с проскальзыванием между проверками.
     # 8) надо аккуратно заканчивать работу программы, т.к. сейчас она обрывается посреди действия.
     
-    def __init__(self, data, ws, tg_bot):
+    def __init__(self, data, ws, tg_bot=None):
         data['basis'] = float(data['basis'])
         data["amount_base"] = float(data["amount_base"])
         data["amount_second"] = float(data["amount_second"])
@@ -51,18 +51,24 @@ class BasisTradingBot:
         self.tg_bot = tg_bot
         self.log_to_tg = True
 
-        logging.basicConfig(level=logging.INFO, filename='application_' + data['name'],
-                            format='%(asctime)s  %(levelname)s:  %(message)s' )
-        self.log = logging.getLogger(__name__)
+        # logging.basicConfig(level=logging.INFO, filename='application_' + data['name'],
+                            # format='%(asctime)s  %(levelname)s:  %(message)s' )
+        self.log = logging.getLogger()  #'application_' + data['name']
+        handler = logging.FileHandler('application_' + data['name'])
+        formatter = logging.Formatter('%(asctime)s  %(levelname)s:  %(message)s')
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        self.log.setLevel(logging.INFO)
+
         self.logging_bot("\n\n====================================================================", True)
-        self.logging_bot("Init BasisTradingBot", True)
+        self.logging_bot("Init BasisTradingBot " + data['name'], True)
 
 
     def logging_bot(self, msg, log_to_tg=False):
         if msg == "":
             return
         self.log.info(msg)
-        if log_to_tg:
+        if log_to_tg and self.tg_bot is not None:
             self.tg_bot.send_message(-561707350, msg)
 
     def put_order(self):
@@ -144,7 +150,7 @@ class BasisTradingBot:
         self.logging_bot(f'End cancelling order, err = {err}')
 
         # Знчит ордер сполнился полностью.
-        if err == 'error':
+        if err is not None:
             self.logging_bot('In cancel_order order fully filled')
 
             is_trade, err = self.market_base(self.data['amount_base'])
@@ -289,26 +295,29 @@ class BasisTradingBot:
 def main():
     client_id = my_data.client_id
     client_secret = my_data.client_secret
-    ws = DeribitWS(client_id, client_secret, test=True)
+    ws = DeribitWS(client_id, client_secret, test=False)
 
     # basis = 90  # При открытии позиции
     basis = 50  # При закрытии позиции, кратный 0.05
 
-    pair_base = 'BTC-PERPETUAL'  # Закрываем по маркету, цена должна быть ниже
-    pair_second = 'BTC-24JUN22'  # Выставляем лимитный ордер
+    pair_base = 'ETH-PERPETUAL'
+    pair_second = 'ETH-30JUL21'
+
+    # pair_base = 'BTC-PERPETUAL'  # Закрываем по маркету, цена должна быть ниже
+    # pair_second = 'BTC-24JUN22'  # Выставляем лимитный ордер
 
     # buy/sell
-    # side_base = 'buy'
-    # side_second = 'sell'
+    side_base = 'buy'
+    side_second = 'sell'
 
-    side_base = 'sell'
-    side_second = 'buy'
+    # side_base = 'sell'
+    # side_second = 'buy'
 
     max_price_diff_up = 1.2  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
     max_price_diff_down = 5
 
     # Размер ордера в USDT
-    amount = 10
+    amount = 1
     amount_base = amount
     amount_second = amount
 
@@ -323,6 +332,7 @@ def main():
     data['max_price_diff_up'] = max_price_diff_up
     data['max_price_diff_down'] = max_price_diff_down
     data["is_working"] = True
+    data['name'] = 'Test2'
 
     trading_bot = BasisTradingBot(data, ws, None)
     try:
