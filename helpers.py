@@ -18,3 +18,9 @@ def unix_to_datetime(unixtime):
     datetime = pd.to_datetime(unixtime, unit='s', origin='unix')
     
     return datetime
+
+def dict_to_str(d):
+    s = "\n"
+    for key in d:
+        s += f'{key}: {d[key]}\n'
+    return s
