@@ -76,13 +76,26 @@ def handle_create_bot_message_sequence(message, prev_message):
         if message.text in bots:
             tb.send_message(message.chat.id, 'Given name is already using.')
         else:
+            telegram_bot_sendtext("Succesfuly send message via request.", str(message.chat.id))
             basis_bot = BotEntity(message.text)
             markup = create_inline_markup({
                 "BTC": "coin_choosed_BTC",
                 "ETH": "coin_choosed_ETH",
             })
-            msg = tb.send_message(message.chat.id, 'Выберите монету.', reply_markup=markup)
+            msg = tb.send_message(message.chat.id, 'Choose coin', reply_markup=markup)
             # tb.register_next_step_handler(msg, choose_coin, basis_bot)
+
+import requests
+
+def telegram_bot_sendtext(bot_message, chat_id):
+
+   bot_token = "1918530464:AAGWaDRwJnkGKvbUZEXcCoSGBRFWFnbZhQs"
+   bot_chatID = chat_id
+   send_text = 'https://api.telegram.org/bot' + bot_token + '/sendMessage?chat_id=' + bot_chatID + '&parse_mode=Markdown&text=' + bot_message
+
+   response = requests.get(send_text)
+
+   return response.json()
 
 @tb.callback_query_handler(func=lambda call: True)
 def callback_query(call):
