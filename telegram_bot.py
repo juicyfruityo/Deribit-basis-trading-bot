@@ -15,11 +15,24 @@ ws = DeribitWS(my_data.client_id, my_data.client_secret, test=True)
 num_of_running_bots = 0
 MAX_BOTS_RUNNING = 4
 trustful_user_ids = [679868171, 337991363]
-bots = {"Test": BotEntity("Test")}
+bots = {"Test": BotEntity("Test", params={
+    "name": "Test",
+    "coin": "BTC",
+    "pair_base": 'BTC-PERPETUAL',
+    "pair_second": 'BTC-24JUN22',
+    "side_base": 'sell',
+    "side_second": 'buy',
+    'basis': 50,                
+    "amount_base": 10,
+    "amount_second": 10,
+    "price_diff_up": 5,
+    "price_diff_down": 2.4,
+})}
 
 class User:
     def __init__(self, user_id):
         self.user_id = user_id
+        self.bot = None
     
     def create_bot(self, name, params=None):
         self.bot = BotEntity(name, params)
@@ -29,12 +42,12 @@ users = {
     337991363: User(337991363),
     }
 
-# Command processing
+# Initial command processing
 #_____________________________________________________________________________________________________________________
 
 @tb.message_handler(commands=['start'])
 def help_info(message):
-    if message.from_user.id in trustful_user_ids:
+    if message.from_user.id not in trustful_user_ids:
         tb.send_message(message.chat.id, f"Sorry, you can't use this bot. For more information you can pm @lomonoshka.")    
     elif message.from_user.id not in users:
         users[message.from_user.id] = User(message.from_user.id)
@@ -58,7 +71,7 @@ def start_bot(message):
     if num_of_running_bots >= MAX_BOTS_RUNNING:
         tb.send_message(message.chat.id, f'The maximum number of bots launched cannot exceed {MAX_BOTS_RUNNING}.')
     else:
-        choose_bot(message, handle_start_bot_message_sequence)
+        choose_bot(message, "s_b", "ch_b")
 
 @tb.message_handler(commands=['stop_bot'])
 def stop_bot(message):
@@ -72,17 +85,16 @@ def change_parameters(message):
 def bot_info(message):
     choose_bot(message, None)
 
-def choose_bot(message, handler):
+def choose_bot(message, sequence_name, current_method):
     if len(bots) == 0:
         tb.send_message(message.chat.id, 'There are no bots created.')
     else:
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*bots.keys())
-        bot_message = tb.send_message(message.chat.id, 'Choose bot', reply_markup=keyboard)
-        tb.register_next_step_handler(bot_message, handler)
+        buttons = {bot: bot for bot in bots}
+        markup = create_inline_markup(buttons, sequence_name, current_method)
+        tb.send_message(message.chat.id, "Choose bot", reply_markup=markup, parse_mode="MarkdownV2")
 #_____________________________________________________________________________________________________________________
 
-# Handlers for commands
+# create_bot command processing
 #_____________________________________________________________________________________________________________________
 
 # Takes dict {button: callback_data}, current command and return InlineKeyboardMarkup where callback data is json
@@ -98,13 +110,13 @@ def create_inline_markup(buttons, sequence_name, current_method, row_width = 2):
                 "cur_m": current_method,
                 "seq_n": sequence_name,
                 }
-            print(json.dumps(callback_dict).encode('utf-8'))
-            print(len(json.dumps(callback_dict).encode('utf-8')))
+            # print(json.dumps(callback_dict).encode('utf-8'))
+            # print(len(json.dumps(callback_dict).encode('utf-8')))
             bs.append(InlineKeyboardButton(button, callback_data=json.dumps(callback_dict)))
         markup.add(*bs)
     return markup
 
-def handle_create_bot_message_sequence(message, prev_message, data=None, inline_message = None):
+def handle_create_bot_message_sequence(message, prev_message, data=None, call = None):
     if prev_message == "/create_bot":
         if message.text in bots:
             bot_message = tb.send_message(message.chat.id, 'Given name is already using.')
@@ -119,68 +131,72 @@ def handle_create_bot_message_sequence(message, prev_message, data=None, inline_
             tb.send_message(message.chat.id, bot_params(user.bot.params, "Choose coin"), reply_markup=markup, parse_mode="MarkdownV2")
     elif prev_message == "change_parameter":
         bot = users[message.from_user.id].bot
-        if data in {"amount_base", "amount_second", "max_price_diff_up", "max_price_diff_down"}:
-            bot.params[data] = float(message.text)
+        if data in {"basis", "amount_base", "amount_second", "price_diff_up", "price_diff_down"}:
+            if message.text.isdigit():
+                bot.params[data] = float(message.text)
+            else:
+                tb.answer_callback_query(call.id, f"This parametr has to be a number.")
         else:
             bot.params[data] = message.text
         tb.delete_message(message.chat.id, message.message_id)
-        try:    
-            buttons = {button: button for button in bot.params if button not in {"name", "base_pair", "second_pair"}}
-            markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_p")
-            tb.edit_message_text(chat_id=inline_message.chat.id, message_id=inline_message.message_id, text=bot_params(bot.params, "Edit other parameters"),
-            reply_markup=markup, parse_mode="MarkdownV2")
-        except Exception as e:
-            print(e)
-
-
-import requests
-
-def telegram_bot_sendtext(bot_message, chat_id):
-
-   bot_token = "1918530464:AAGWaDRwJnkGKvbUZEXcCoSGBRFWFnbZhQs"
-   bot_chatID = chat_id
-   send_text = 'https://api.telegram.org/bot' + bot_token + '/sendMessage?chat_id=' + bot_chatID + '&parse_mode=MarkdownV2&text=' + bot_message
-
-   response = requests.get(send_text)
-
-   return response.json()
+        change_parameters(call, bot)
 
 @tb.callback_query_handler(func=lambda call: call.data.find("cr_b") != -1)
 def create_bot_callback_query(call):
     data = json.loads(call.data)
     bot = users[call.from_user.id].bot
-    if data["cur_m"] == "ch_c":
-        bot.params["coin"] = data["val"]
-        try:    
-            instruments = ws.available_instruments(bot.params["coin"])
-            buttons = {button: button for button in instruments}
-            markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_i1")
-            tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Choose base pair"),
-            reply_markup=markup, parse_mode="MarkdownV2")
-        except Exception as e:
-            print(e)
-    if data["cur_m"] == "ch_i1":
-        bot.params["pair_base"] = data["val"]
-        try:    
-            instruments = ws.available_instruments(bot.params["coin"])
-            buttons = {button: button for button in instruments if button != bot.params["pair_base"]}
-            markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_i2")
-            tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Choose second pair"),
-            reply_markup=markup, parse_mode="MarkdownV2")
-        except Exception as e:
-            print(e)
-    if data["cur_m"] == "ch_i2":
-        bot.params["pair_second"] = data["val"]
-        try:    
-            buttons = {button: button for button in bot.params if button not in {"name", "coin", "pair_base", "pair_second"}}
-            buttons["Complete bot creation"] = "comp_cr"
-            markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_p")
-            tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Edit other parameters"),
-            reply_markup=markup, parse_mode="MarkdownV2")
-        except Exception as e:
-            print(e)
-    if data["cur_m"] == "ch_p":
-        if data["val"] == "comp_cr":
+    callbacks = {
+        "ch_c": choosing_coin,
+        "ch_i1": choosing_base_pair,
+        "ch_i2": choosing_second_pair,
+        "ch_p": choosing_parameters,
+        "ch_s1": choose_base_side,
+        "ch_s2": choose_second_side,
+        "end": complete_creation,
+        "quit": abort_creation,
+    }
+    callbacks[data["cur_m"]](call, bot)
+
+
+def choosing_coin(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    bot.params["coin"] = data["val"]
+    try:    
+        instruments = ws.available_instruments(bot.params["coin"])
+        buttons = {button: button for button in instruments}
+        markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_i1")
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Choose base pair"),
+        reply_markup=markup, parse_mode="MarkdownV2")
+    except Exception as e:
+        print(e)
+
+def choosing_base_pair(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    bot.params["pair_base"] = data["val"]
+    try:    
+        instruments = ws.available_instruments(bot.params["coin"])
+        buttons = {button: button for button in instruments if button != bot.params["pair_base"]}
+        markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_i2")
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Choose second pair"),
+        reply_markup=markup, parse_mode="MarkdownV2")
+    except Exception as e:
+        print(e)
+
+def choosing_second_pair(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    bot.params["pair_second"] = data["val"]
+    change_parameters(call, bot)
+
+def choosing_parameters(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    if data["val"] == "comp_cr":
+        if None in bot.params.values():
+            tb.answer_callback_query(call.id, f"Not all parameters changed.")
+        else:
             buttons = {
                 "Yes": "Yes",
                 "No": "No",
@@ -188,25 +204,89 @@ def create_bot_callback_query(call):
             markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="end")
             tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, f'Are you sure you want to complete bot creation?'),
             reply_markup=markup, parse_mode="MarkdownV2")
-        else:
-            tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, f'Please, write new value, of {data["val"]}'),
-            reply_markup=None, parse_mode="MarkdownV2")
-            tb.register_next_step_handler(call.message, handle_create_bot_message_sequence, "change_parameter", data["val"], call.message)
-    if data["cur_m"] == "end":
-        if data["val"] == "Yes":
-            tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Bot succesfuly created.")
-        else:
-            try:    
-                buttons = {button: button for button in bot.params if button not in {"name", "coin", "pair_base", "pair_second"}}
-                buttons["Complete bot creation"] = "Complete bot creation"
-                markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_p")
-                tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Edit other parameters"),
-                reply_markup=markup, parse_mode="MarkdownV2")
-            except Exception as e:
-                print(e)
+    elif data["val"] == "side_base" or data["val"] == "side_second":
+        buttons = {
+            "sell": "sell",
+            "buy": "buy",
+        }
+        current_method = "ch_s1" if data["val"] == "side_base" else "ch_s2" 
+        markup = create_inline_markup(buttons, sequence_name="cr_b", current_method=current_method)
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, f'Please, choose new value of {data["val"]}'),
+        reply_markup=markup, parse_mode="MarkdownV2")
+    elif data["val"] == "q_cr":
+        buttons = {
+            "Yes": "Yes",
+            "No": "No",
+        }
+        markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="quit")
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, 'Are you sure you want to quit bot creation?'),
+        reply_markup=markup, parse_mode="MarkdownV2")
+    else:
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, f'Please, write new value of {data["val"]}'),
+        reply_markup=None, parse_mode="MarkdownV2")
+        tb.register_next_step_handler(call.message, handle_create_bot_message_sequence, "change_parameter", data["val"], call)
 
-def handle_start_bot_message_sequence(message, prev_message):
-    pass
+def choose_base_side(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    bot.params["side_base"] = data["val"]
+    change_parameters(call, bot)
+
+def choose_second_side(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    bot.params["side_second"] = data["val"]
+    change_parameters(call, bot)
+
+def complete_creation(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    if data["val"] == "Yes":
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Bot succesfuly created.")
+        bots[bot.name] = bot
+    else:
+        change_parameters(call, bot)
+
+def abort_creation(call, bot):
+    data = json.loads(call.data)
+    message = call.message
+    if data["val"] == "Yes":
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Bot creation aborted.')
+    else:
+        change_parameters(call, bot)
+
+def change_parameters(call, bot):
+    try:    
+        buttons = {button: button for button in bot.params if button not in {"name", "coin", "pair_base", "pair_second"}}
+        buttons["Complete bot creation"] = "comp_cr"
+        buttons["Quit bot creation"] = "q_cr"
+        markup = create_inline_markup(buttons, sequence_name="cr_b", current_method="ch_p")
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=bot_params(bot.params, "Edit other parameters"),
+        reply_markup=markup, parse_mode="MarkdownV2")
+    except Exception as e:
+        print(e)
+
+#_____________________________________________________________________________________________________________________
+
+# Processing comand start_bot
+#_____________________________________________________________________________________________________________________
+@tb.callback_query_handler(func=lambda call: call.data.find("s_b") != -1)
+def create_bot_callback_query(call):
+    data = json.loads(call.data)
+    callbacks = {
+        "ch_b": choosing_bot,
+    }
+    callbacks[data["cur_m"]](call)
+
+def choosing_bot(call):
+    data = json.loads(call.data)
+    bot_name = data["val"]
+    if bot_name not in bots:
+        tb.answer_callback_query(call.id, f"Can't start this bot.")
+    else:
+        bots[bot_name].start()
+        tb.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Bot succesfuly started.")
+#_____________________________________________________________________________________________________________________
 
 def change(message):
     if message.text not in bots:

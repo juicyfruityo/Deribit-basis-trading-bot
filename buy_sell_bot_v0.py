@@ -6,6 +6,7 @@ import time
 import logging
 import sys
 
+from helpers import *
 import my_data
 from derebit_ws import DeribitWS
 
@@ -35,7 +36,7 @@ class BasisTradingBot:
     # 7) надо придумать как борорться с проскальзыванием между проверками.
     # 8) надо аккуратно заканчивать работу программы, т.к. сейчас она обрывается посреди действия.
     
-    def __init__(self, data, ws, tg_bot):
+    def __init__(self, data, ws):
         data['basis'] = float(data['basis'])
         data["amount_base"] = float(data["amount_base"])
         data["amount_second"] = float(data["amount_second"])
@@ -48,7 +49,7 @@ class BasisTradingBot:
         self.current_positions = {}  # {pair: [positions]}
 
         self.time_iter = 0
-        self.tg_bot = tg_bot
+        # self.tg_bot = tg_bot
         self.log_to_tg = True
 
         logging.basicConfig(level=logging.INFO, filename='application_' + data['name'],
@@ -63,7 +64,7 @@ class BasisTradingBot:
             return
         self.log.info(msg)
         if log_to_tg:
-            self.tg_bot.send_message(-561707350, msg)
+            telegram_bot_sendtext(msg)
 
     def put_order(self):
         # TODO: сделать обработку ошибок,
