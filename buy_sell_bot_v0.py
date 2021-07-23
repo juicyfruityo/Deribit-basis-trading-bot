@@ -39,8 +39,8 @@ class BasisTradingBot:
         data['basis'] = float(data['basis'])
         data["amount_base"] = float(data["amount_base"])
         data["amount_second"] = float(data["amount_second"])
-        data["max_price_diff_up"] = float(data["max_price_diff_up"])
-        data["max_price_diff_down"] = float(data["max_price_diff_down"])
+        data["price_diff_up"] = float(data["price_diff_up"])
+        data["price_diff_down"] = float(data["price_diff_down"])
         self.data = data
 
         self.ws = ws
@@ -235,17 +235,17 @@ class BasisTradingBot:
             self.logging_bot('Start check for resseting order')
 
             # Разница цены, при которой надо переставить ордер.
-            max_price_diff_up = self.data['max_price_diff_up']  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
-            max_price_diff_down = self.data['max_price_diff_down']  # Переставлять ордер, если текущий базис снизился на данное значение. (Надо ставить больше при выходже из позиции)
+            price_diff_up = self.data['price_diff_up']  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
+            price_diff_down = self.data['price_diff_down']  # Переставлять ордер, если текущий базис снизился на данное значение. (Надо ставить больше при выходже из позиции)
 
-            # max_price_diff_up - ставим побольше, когда нам надо чтобы базис был как можно больше
-            # max_price_diff_down - ставим поменьше, когда нам надо чтобы базис был как можно больше
+            # price_diff_up - ставим побольше, когда нам надо чтобы базис был как можно больше
+            # price_diff_down - ставим поменьше, когда нам надо чтобы базис был как можно больше
 
             # Если разница достаточно большая, то надо закрыть ордер и открыть заново.
             # 1) Отставляем ордер ниже, если базис начал уменьшаться не в нашу сторону.
             # 2) Отсавляем ордер ближе ордербуке, если разница стала слишком большой.
-            expr = (order_price - price_base <= self.data['basis'] - max_price_diff_down) \
-                    or (order_price - price_base >= self.data['basis'] + max_price_diff_up)
+            expr = (order_price - price_base <= self.data['basis'] - price_diff_down) \
+                    or (order_price - price_base >= self.data['basis'] + price_diff_up)
 
             if expr:
                 self.logging_bot('Start resetting order')
@@ -304,8 +304,8 @@ def main():
     side_base = 'sell'
     side_second = 'buy'
 
-    max_price_diff_up = 1.2  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
-    max_price_diff_down = 5
+    price_diff_up = 1.2  # Переставлять оредр, если текущий базис больше заданного. (Надо ставить больше при вхождении в позицию)
+    price_diff_down = 5
 
     # Размер ордера в USDT
     amount = 10
@@ -320,8 +320,8 @@ def main():
     data['side_second'] = side_second
     data['amount_base'] = amount_base
     data['amount_second'] = amount_second
-    data['max_price_diff_up'] = max_price_diff_up
-    data['max_price_diff_down'] = max_price_diff_down
+    data['price_diff_up'] = price_diff_up
+    data['price_diff_down'] = price_diff_down
     data["is_working"] = True
 
     trading_bot = BasisTradingBot(data, ws, None)
