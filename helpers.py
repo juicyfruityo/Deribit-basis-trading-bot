@@ -19,8 +19,15 @@ def unix_to_datetime(unixtime):
     
     return datetime
 
-def dict_to_str(d):
-    s = "\n"
-    for key in d:
-        s += f'{key}: {d[key]}\n'
-    return s
+def bot_params(params, next_line):
+    s = "```\n"
+    s += "Bot's current parameters:\n"
+    s += "x" + 36 * "-" + "x" + "\n"
+    for key in params:
+        if params[key] is not None:
+            s += "|{:<20} {:>15}|".format(key, params[key])
+            s += "\n"
+    s += "x" + 36 * "-" + "x" + "\n"
+    s += next_line
+    # print(s)
+    return s + "```"  

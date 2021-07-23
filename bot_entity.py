@@ -14,16 +14,17 @@ class BotEntity:
     def __init__(self, name, params=None):
         if params is None:
             params = {
-        'basis': 50,                
-        "side_base": "buy",
-        "side_second": "sell",
-        "amount_base": 1,
-        "amount_second": 1,
-        "max_price_diff_up": 1.2,
-        "max_price_diff_down": 5,
-        "pair_base": "ETH-PERPETUAL",
-        "pair_second": 'ETH-30JUL21',
         "name": name,
+        "coin": None,
+        "pair_base": None,
+        "pair_second": None,
+        "side_base": None,
+        "side_second": None,
+        'basis': None,                
+        "amount_base": None,
+        "amount_second": None,
+        "max_price_diff_up": None,
+        "max_price_diff_down": None,
         }
         self.name = name
         self.params = params
