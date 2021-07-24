@@ -1,4 +1,5 @@
 import pandas as pd
+import requests
 
 def datetime_to_unix(datetime):
     '''
@@ -19,27 +20,25 @@ def unix_to_datetime(unixtime):
     
     return datetime
 
-def bot_params(params, next_line):
+def get_parameters_table(params, next_line):
     s = "```\n"
     s += "Bot's current parameters:\n"
-    s += "x" + 32 * "-" + "x" + "\n"
+    s += "x" + 26 * "-" + "x" + "\n"
     for key in params:
         val = params[key] if params[key] is not None else "?"
-        s += "|{:<18} {:<13}|".format(key, val)
+        s += "|{:<12} {:<13}|".format(key, val)
         s += "\n"
-    s += "x" + 32 * "-" + "x" + "\n"
+    s += "x" + 26 * "-" + "x" + "\n"
     s += next_line
     # print(s)
     return s + "```"  
 
-import requests
+def tg_logging(bot_message, markdown=False):
 
-def telegram_bot_sendtext(bot_message):
-
-   bot_token = "1861690516:AAGtrzfJdLPruv93ZKHHUIXThVHqHRAiYoU"
-   bot_chatID = "-1001526300280"
-   send_text = 'https://api.telegram.org/bot' + bot_token + '/sendMessage?chat_id=' + bot_chatID + '&parse_mode=MarkdownV2&text=' + bot_message
-
-   response = requests.get(send_text)
-
-   return response.json()
+    bot_token = "1861690516:AAGtrzfJdLPruv93ZKHHUIXThVHqHRAiYoU"
+    bot_chatID = "-1001526300280"
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={bot_chatID}&text={bot_message}'
+    if markdown:
+        url += '&parse_mode=MarkdownV2'
+    response = requests.get(url)
+    return response.json()
