@@ -182,9 +182,9 @@ def handle_create_bot_message_sequence(message, prev_message, data=None, call = 
     elif prev_message == "change_parameter":
         bot = users[message.from_user.id].bot
         if data in {"basis", "amount_base", "amount_other", "diff_up", "diff_down"}:
-            if message.text.isdigit():
+            try:
                 bot.params[data] = float(message.text)
-            else:
+            except:
                 tb.answer_callback_query(call.id, f"This parameter has to be a number.")
         else:
             bot.params[data] = message.text
