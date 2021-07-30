@@ -96,9 +96,7 @@ class DeribitWS:
 
         self.msg["method"] = f"private/{side}"
         self.msg["params"] = params
-
         response, err = self.__error_check(self.async_loop(self.priv_api, json.dumps(self.msg)))
-
         return response, err
 
 

@@ -1,0 +1,356 @@
+2021-07-30 14:55:30,753  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:56:39,934  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:56:39,935  INFO:  Starting bot with name Test
+2021-07-30 14:56:40,200  INFO:  Socker is opened
+2021-07-30 14:57:25,213  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:57:25,213  INFO:  Starting bot with name Test
+2021-07-30 14:57:25,401  INFO:  Socker is opened
+2021-07-30 14:58:30,259  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:58:30,260  INFO:  Starting bot with name Test
+2021-07-30 14:58:30,532  INFO:  Socker is opened
+2021-07-30 14:58:54,530  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:58:54,531  INFO:  Starting bot with name Test
+2021-07-30 14:58:54,712  INFO:  Socker is opened
+2021-07-30 14:59:43,266  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:59:43,267  INFO:  Starting bot with name Test
+2021-07-30 14:59:43,551  INFO:  Socker is opened
+2021-07-30 14:59:57,670  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 14:59:57,671  INFO:  Starting bot with name Test
+2021-07-30 14:59:57,859  INFO:  Socker is opened
+2021-07-30 15:00:36,340  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15           |
+x--------------------------x
+```
+2021-07-30 15:00:36,341  INFO:  Starting bot with name Test
+2021-07-30 15:00:36,591  INFO:  Socker is opened
+2021-07-30 15:05:25,168  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        17           |
+x--------------------------x
+```
+2021-07-30 15:05:25,169  INFO:  Starting bot with name Test
+2021-07-30 15:05:25,426  INFO:  Socker is opened
+2021-07-30 15:05:45,137  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        17           |
+x--------------------------x
+```
+2021-07-30 15:08:39,450  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        17           |
+x--------------------------x
+```
+2021-07-30 15:08:39,451  INFO:  Starting bot with name Test
+2021-07-30 15:08:39,640  INFO:  Socker is opened
+2021-07-30 15:09:50,836  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        17           |
+x--------------------------x
+```
+2021-07-30 15:09:50,836  INFO:  Starting bot with name Test
+2021-07-30 15:09:51,016  INFO:  Socker is opened
+2021-07-30 15:18:17,732  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        17           |
+x--------------------------x
+```
+2021-07-30 15:18:17,732  INFO:  Starting bot with name Test
+2021-07-30 15:18:17,962  INFO:  Socker is opened
+2021-07-30 15:29:30,564  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        16.2         |
+x--------------------------x
+```
+2021-07-30 15:29:30,565  INFO:  Starting bot with name Test
+2021-07-30 15:29:30,766  INFO:  Socker is opened
+2021-07-30 15:35:05,491  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 15:35:05,492  INFO:  Starting bot with name Test
+2021-07-30 15:35:05,678  INFO:  Socker is opened
+2021-07-30 15:36:10,516  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 15:36:10,517  INFO:  Starting bot with name Test
+2021-07-30 15:36:10,700  INFO:  Socker is opened
+2021-07-30 16:21:01,540  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 16:21:01,541  INFO:  Starting bot with name Test
+2021-07-30 16:21:01,739  INFO:  Socker is opened
+2021-07-30 17:13:17,370  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 17:13:17,371  INFO:  Starting bot with name Test
+2021-07-30 17:13:17,579  INFO:  Socker is opened
+2021-07-30 17:18:11,609  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 17:18:11,609  INFO:  Starting bot with name Test
+2021-07-30 17:18:11,872  INFO:  Socker is opened
+2021-07-30 17:18:30,583  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 17:18:30,584  INFO:  Starting bot with name Test
+2021-07-30 17:18:30,849  INFO:  Socker is opened
+2021-07-30 17:19:14,374  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 17:19:14,375  INFO:  Starting bot with name Test
+2021-07-30 17:19:14,656  INFO:  Socker is opened
+2021-07-30 17:23:01,490  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 17:23:01,491  INFO:  Starting bot with name Test
+2021-07-30 17:23:01,737  INFO:  Socker is opened
+2021-07-30 17:24:53,508  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    buy          |
+|other_side   sell         |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.2         |
+x--------------------------x
+```
+2021-07-30 17:24:53,509  INFO:  Starting bot with name Test
+2021-07-30 17:24:53,780  INFO:  Socker is opened
+2021-07-30 17:25:38,377  INFO:  Creating SimpleBasisBot with params ```
+Bot's current parameters:
+x--------------------------x
+|name         Test         |
+|base_inst    ETH-PERPETUAL|
+|other_inst   ETH-24SEP21  |
+|base_side    sell         |
+|other_side   buy          |
+|base_amount  1.0          |
+|other_amount 1.0          |
+|basis        15.5         |
+x--------------------------x
+```
+2021-07-30 17:25:38,378  INFO:  Starting bot with name Test
+2021-07-30 17:25:38,559  INFO:  Socker is opened
