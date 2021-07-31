@@ -14,11 +14,13 @@ class SimpleBasisBot:
         self.parameters = parameters
         if test is False:
             self.uri = "wss://www.deribit.com/ws/api/v2"
+            self.client_id = my_data.client_id
+            self.client_secret = my_data.client_secret
         else:
             self.uri = 'wss://test.deribit.com/ws/api/v2' 
+            self.client_id = my_data.client_id_test
+            self.client_secret = my_data.client_secret_test
         self.is_working = False
-
-        # self.ws = DeribitWS(my_data.client_id, my_data.client_secret, test=False)
 
         logging.basicConfig(level=logging.INFO, filename=f"SimpleBasisBot_{self.parameters['name']}",
                     format='%(asctime)s  %(levelname)s:  %(message)s' )
@@ -27,11 +29,26 @@ class SimpleBasisBot:
 
     async def start(self):
         self.log.info(f"Starting bot with name {self.parameters['name']}")
+        self.is_working = True
         self.basis = None
         self.last_base_price = None
         self.last_other_price = None
         async with websockets.connect(self.uri) as websocket:
             self.log.info(f"Socker is opened")
+
+            auth_creds = {
+                "jsonrpc" : "2.0",
+                "id" : 0,
+                "method" : "public/auth",
+                "params" : {
+                    "grant_type" : "client_credentials",
+                    "client_id" : self.client_id,
+                    "client_secret" : self.client_secret
+                }
+            }
+            
+            await websocket.send(json.dumps(auth_creds))
+            print("Recieved after auth",await websocket.recv())
             data = {
                 "method": "public/subscribe",
                 "params": {
@@ -51,61 +68,45 @@ class SimpleBasisBot:
                 make_trade = self.calculating_basis(await websocket.recv())
                 if make_trade:
                     start = time.time()
-                    auth_creds = {
-                        "jsonrpc" : "2.0",
-                        "id" : 0,
-                        "method" : "public/auth",
-                        "params" : {
-                            "grant_type" : "client_credentials",
-                            "client_id" : my_data.client_id,
-                            "client_secret" : my_data.client_secret
-                        }
-                    }
-                    await websocket.send(json.dumps(auth_creds))
 
-                    pair_base = self.parameters["base_inst"]
-                    amount_base = self.parameters['base_amount']
-                    side_base = self.parameters['base_side']
-                    pair_other = self.parameters["other_inst"]
-                    amount_other = self.parameters['other_amount']
-                    side_other = self.parameters['other_side']
                     msg_base = {
                         "jsonrpc": "2.0",
                         "id": 1,
-                        "method": f"private/{side_base}",
+                        "method": f"private/{self.parameters['base_side']}",
                         "params": {
-                            "instrument_name" : pair_base,
-                            "amount" : amount_base,
+                            "instrument_name" : self.parameters["base_inst"],
+                            "amount" : self.parameters['base_amount'],
                             "type" : "market",
                             "grant_type" : "client_credentials",
-                            "client_id" : my_data.client_id,
-                            "client_secret" : my_data.client_secret
+                            "client_id" : self.client_id,
+                            "client_secret" : self.client_secret
                         }
                     }
                     msg_other = {
                         "jsonrpc": "2.0",
                         "id": 1,
-                        "method": f"private/{side_other}",
+                        "method": f"private/{self.parameters['other_side']}",
                         "params": {
-                            "instrument_name" : pair_other,
-                            "amount" : amount_other,
+                            "instrument_name" : self.parameters["other_inst"],
+                            "amount" : self.parameters['other_amount'],
                             "type" : "market",
                             "grant_type" : "client_credentials",
-                            "client_id" : my_data.client_id,
-                            "client_secret" : my_data.client_secret
+                            "client_id" : self.client_id,
+                            "client_secret" : self.client_secret
                         }
                     }
 
                     await websocket.send(json.dumps(msg_base))
-                    response_base = await websocket.recv()
 
                     await websocket.send(json.dumps(msg_other))
+                    
+                    response_base = await websocket.recv()
                     response_other = await websocket.recv()
-
-                    print(response_base)
 
                     print(f'Working time = {time.time() - start} sec')
                     print('Trade DONE')
+                    # print(f"base market response:\n{response_base}")
+                    # print(f"other market response:\n{response_other}")
 
     def calculating_basis(self, message):
         if "params" in message:
@@ -125,13 +126,12 @@ class SimpleBasisBot:
                 self.basis = self.last_other_price - self.last_base_price
         
             if self.basis is not None:
-                clear = lambda: os.system('clear')
-                clear()
+                os.system('clear')
                 print(f"Last_base_price: {self.last_base_price}\nLast_other_price: {self.last_other_price}\nBasis: {self.basis}")
 
-                if self.parameters['base_sid'] == 'buy' and self.basis > self.parameters['basis']:
+                if self.parameters['base_side'] == 'buy' and self.basis > self.parameters['basis']:
                     return True
-                elif self.parameters['base_sid'] == 'sell' and self.basis < self.parameters['basis']:
+                elif self.parameters['base_side'] == 'sell' and self.basis < self.parameters['basis']:
                     return True
         return False
 
@@ -140,12 +140,12 @@ def main():
         "name": "Test",
         "base_inst": "ETH-PERPETUAL",
         "other_inst": "ETH-24SEP21",
-        "base_side": "sell",
-        "other_side": "buy",
+        "base_side": "buy",
+        "other_side": "sell",
         "base_amount": 1.,
         "other_amount": 1.,
-        "basis": 15.5,
-    })
+        "basis": 26,
+    }, True)
     # asyncio.get_event_loop().run_until_complete(bot.start())
     # loop = asyncio.new_event_loop()
     # asyncio.set_event_loop(loop)
