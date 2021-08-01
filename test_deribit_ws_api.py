@@ -54,7 +54,6 @@ def on_close(ws):
     print('closed connection')
 
 
-
 socket = 'wss://www.deribit.com/ws/api/v2'
 ws1 = websocket.WebSocketApp(socket, on_open=on_open1, on_message=on_message1, on_close=on_close)
 t1 = Thread(target=ws1.run_forever)

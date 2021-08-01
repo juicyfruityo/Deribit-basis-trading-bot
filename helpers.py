@@ -1,4 +1,5 @@
 import pandas as pd
+import logging
 import requests
 
 def datetime_to_unix(datetime):
@@ -42,3 +43,12 @@ def tg_logging(bot_message, markdown=False):
         url += '&parse_mode=MarkdownV2'
     response = requests.get(url)
     return response.json()
+
+def get_logging_file(name):
+    log = logging.getLogger('application_' + name)
+    handler = logging.FileHandler('application_' + name)
+    formatter = logging.Formatter('%(asctime)s  %(levelname)s:  %(message)s')
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
+    log.setLevel(logging.INFO)
+    return log

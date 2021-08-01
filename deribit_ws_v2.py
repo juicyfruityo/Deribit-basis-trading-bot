@@ -18,9 +18,7 @@ class SimpleBasisBot:
             self.uri = 'wss://test.deribit.com/ws/api/v2' 
         self.is_working = False
 
-        # self.ws = DeribitWS(my_data.client_id, my_data.client_secret, test=False)
-
-        logging.basicConfig(level=logging.INFO, filename=f"SimpleBasisBot_{self.parameters['name']}",
+        logging.basicConfig(level=logging.INFO, filename=f"application_SimpleBasisBot_{self.parameters['name']}",
                     format='%(asctime)s  %(levelname)s:  %(message)s' )
         self.log = logging.getLogger(__name__)
         self.log.info(f"Creating SimpleBasisBot with params {get_parameters_table(parameters, '')}")
@@ -129,9 +127,9 @@ class SimpleBasisBot:
                 clear()
                 print(f"Last_base_price: {self.last_base_price}\nLast_other_price: {self.last_other_price}\nBasis: {self.basis}")
 
-                if self.parameters['base_sid'] == 'buy' and self.basis > self.parameters['basis']:
+                if self.parameters['base_side'] == 'buy' and self.basis > self.parameters['basis']:
                     return True
-                elif self.parameters['base_sid'] == 'sell' and self.basis < self.parameters['basis']:
+                elif self.parameters['base_side'] == 'sell' and self.basis < self.parameters['basis']:
                     return True
         return False
 
@@ -140,11 +138,11 @@ def main():
         "name": "Test",
         "base_inst": "ETH-PERPETUAL",
         "other_inst": "ETH-24SEP21",
-        "base_side": "sell",
-        "other_side": "buy",
+        "base_side": "buy",
+        "other_side": "sell",
         "base_amount": 1.,
         "other_amount": 1.,
-        "basis": 15.5,
+        "basis": 18.,
     })
     # asyncio.get_event_loop().run_until_complete(bot.start())
     # loop = asyncio.new_event_loop()
