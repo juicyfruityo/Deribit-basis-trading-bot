@@ -59,6 +59,7 @@ class BasisTradingBot:
         self._basis = None
         self._last_base_price = None
         self._last_other_price = None
+        self._prev_time = time.time()
 
         async with websockets.connect(self.uri) as websocket:
             self.logging_bot(f"Socket fro price is opened", False)
@@ -103,6 +104,10 @@ class BasisTradingBot:
                 # clear = lambda: os.system('clear')
                 # clear()
                 # print(f"Last_base_price: {self._last_base_price}\nLast_other_price: {self._last_other_price}\nBasis: {self._basis}")
+                curr_time = time.time()
+                if curr_time - self._prev_time >= 10:
+                    self._prev_time = curr_time
+                    self.logging_bot((f"=== Last_base_price: {self._last_base_price}   Last_other_price: {self._last_other_price}  Basis: {self._basis}"))
             
     def start_price(self):
         asyncio.run(self.start_check_price())
@@ -146,7 +151,7 @@ class BasisTradingBot:
                 
                 _iters += 1
                 _exec_times.append(time.time() - start)
-                if _iters == 20:
+                if _iters == 60:
                     self.logging_bot(f'Working time of __check_order = {sum(_exec_times) / _iters} s (mean)')
                     _iters = 0
                     _exec_times = []
@@ -289,8 +294,11 @@ class BasisTradingBot:
         while websocket.open:
           message = await websocket.recv()
           data = json.loads(message)
-          if "order_id" in data['result']:
+          if data.get('error') or "order_id" in data['result']:
               break
+        if data.get('error'):
+            self.logging_bot(f'ERROR with get_order_state in __check_order err={data["error"]}')
+            raise
 
         # Делаем маркет ордер для базового актива на величину исполненной заявки.
         if data['result']['order_state'] != 'open':
@@ -319,8 +327,18 @@ class BasisTradingBot:
             # и опустошить очередь.
             last_base_price = q_price_base.get(block=True)
         if last_base_price is not None:
+            # diff_down - ставим меньше, когда надо, чтобы базис был больше
+            # diff_up - ставим меньше, когда надо, чтобы базис был меньше
             expr = (last_base_price - self._prev_price_base <= -self.params["diff_down"]) \
                     or (last_base_price - self._prev_price_base >= self.params["diff_up"])
+
+            self.time_iter += 1
+            if self.time_iter == 30:
+                self.time_iter = 0
+                last_other_price = q_price_other.get(block=True)
+                self.logging_bot(f'====  Current basis = {None}' \
+                                + f', base price={last_base_price}, order price={order_info["price"]}, \n' + '\t'*8 \
+                                + f' diff={round(order_info["price"] - last_base_price, 2)}, expr_diff={last_base_price - self._prev_price_base}  =====')
         else:
             expr = False
         # print(f'In check_order: last_base_price = {last_base_price}')
@@ -328,6 +346,9 @@ class BasisTradingBot:
         # Если текущая цена базового актива изменилась значимым образом,
         # то требуется закрыть открытый ордер, и открыть заново.
         if expr:
+            self.logging_bot(f'====  Current basis = {None}' \
+                                + f', base price={last_base_price}, order price={order_info["price"]}, \n' + '\t'*8 \
+                                + f' diff={round(order_info["price"] - last_base_price, 2)}, expr_diff={last_base_price - self._prev_price_base}  =====')
             self.logging_bot('Start resetting order')
 
             trade_done, err = await self.__cancel_order(websocket)
@@ -354,45 +375,45 @@ class BasisTradingBot:
 
 
 def main():
-    # bot = BasisTradingBot(
-    #     "Test1", 
-    #     params={
-    #         "name": "Test1",
-    #         "coin": "ETH",
-    #         "base_inst": 'ETH-PERPETUAL',
-    #         "other_inst": 'ETH-24SEP21',
-    #         "base_side": 'buy',
-    #         "other_side": 'sell',
-    #         'basis': 24.,                
-    #         "amount_base": 5000.,
-    #         "amount_other": 5000.,
-    #         "diff_up": 0.5,
-    #         "diff_down": 0.5,
-    #         'client_id': my_data.client_id_test,
-    #         'client_secret': my_data.client_secret_test
-    #     },
-    #     test=True
-    # )
-
     bot = BasisTradingBot(
-        "Test2", 
+        "Test1", 
         params={
-            "name": "Test2",
+            "name": "Test1",
             "coin": "ETH",
             "base_inst": 'ETH-PERPETUAL',
             "other_inst": 'ETH-24SEP21',
-            "base_side": 'sell',
-            "other_side": 'buy',
-            'basis': 28.,                
-            "amount_base": 5890.,
-            "amount_other": 5890.,
-            "diff_up": 0.5,
-            "diff_down": 0.5,
-            'client_id': my_data.client_id_test,
-            'client_secret': my_data.client_secret_test
+            "base_side": 'buy',
+            "other_side": 'sell',
+            'basis': 14.2,                
+            "amount_base": 1.,
+            "amount_other": 1.,
+            "diff_up": 0.3,
+            "diff_down": 0.8,
+            'client_id': my_data.api_keys[1]["client_id"],
+            'client_secret': my_data.api_keys[1]["client_secret"]
         },
-        test=True
+        test=False
     )
+
+    # bot = BasisTradingBot(
+    #     "Test2", 
+    #     params={
+    #         "name": "Test2",
+    #         "coin": "ETH",
+    #         "base_inst": 'ETH-PERPETUAL',
+    #         "other_inst": 'ETH-24SEP21',
+    #         "base_side": 'sell',
+    #         "other_side": 'buy',
+    #         'basis': 8.3,                
+    #         "amount_base": 1.,
+    #         "amount_other": 1.,
+    #         "diff_up": 0.8,
+    #         "diff_down": 0.3,
+    #         'client_id': my_data.api_keys[0]["client_id"],
+    #         'client_secret': my_data.api_keys[0]["client_secret"]
+    #     },
+    #     test=False
+    # )
 
     # asyncio.get_event_loop().run_until_complete(bot.start())
     # loop = asyncio.new_event_loop()
