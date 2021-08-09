@@ -50,6 +50,14 @@ class BasisTradingBot:
         if log_to_tg and self.tg_bot is not None:
             tg_logging(msg, markdown)
 
+    async def __wait_message(self, websocket, field):
+        while websocket.open:
+            message = await websocket.recv()
+            data = json.loads(message)
+            if data.get('error') or field in data.get('result'):
+                break
+        return data
+
     async def start_check_price(self):
         '''
         Открываем вебсокет и мониторим риал-тайм данные по
@@ -119,6 +127,10 @@ class BasisTradingBot:
                     elif data["channel"][:11] == "user.orders":
                         self.__preprocess_order_state(data["data"])
 
+            if websocket.open is False:
+                print('ERROR in start_check_price websocket is closed')
+                self.logging_bot(f'ERROR in start_check_price, websocket closed but he shouldnt !!')
+
             self.logging_bot(f"Socket for price is closed")
 
     def __preprocess_price(self, data):
@@ -151,6 +163,8 @@ class BasisTradingBot:
                 self.logging_bot((f"=== Last_base_price: {self._last_base_price}   Last_other_price: {self._last_other_price}  Basis: {self._basis}"))
 
     def __preprocess_order_state(self, data):
+        if self.current_orders.get(self.params['other_inst']) is None:
+            return
         if data['order_id'] == self.current_orders[self.params['other_inst']]['order_id']:
             order_state = {
                 "order_id": data['order_id'],
@@ -161,11 +175,33 @@ class BasisTradingBot:
             self.logging_bot((f'Order state: order_id={data["order_id"]}, order_price={data["price"]}, order_state={data["order_state"]}, filled_amount={data["filled_amount"]}'))
             q_order_state.put(order_state)
             
-    def start_price(self):
-        asyncio.run(self.start_check_price())
-        # asyncio.get_event_loop().run_until_complete(self.start_check_price())
-        asyncio.get_event_loop().run_forever()
+    def __start_price_looping(self):
+        try:
+            while True:
+                print('Start loop for start_check_price')
+                self._loop_start_price.run_until_complete(self.start_check_price())
+                self.logging_bot('loop.run_until_complete() ended')
 
+            self.logging_bot('Step out while loop inside start_price')
+        except websockets.exceptions.ConnectionClosedOK:
+            e = websockets.exceptions.ConnectionClosedOK
+            print(f'ERROR in start_price: {e}')
+            self.logging_bot(f'\n {"_"*20} \n \t\t\t\t ERROR in start_price: {e} \n {"_"*20} \n')
+            # self.start_price()
+        except KeyboardInterrupt:            
+            self._loop_start_price.close()
+            self.logging_bot('Close loop in start_price')
+
+    def start_price(self):
+        # asyncio.run(self.start_check_price())
+        print('Start start_price')
+        self._loop_start_price = None
+        if self._loop_start_price is None:
+            self._loop_start_price = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop_start_price)
+        
+        while True:
+            self.__start_price_looping()
 
     async def start_check_order(self):
         '''
@@ -215,8 +251,10 @@ class BasisTradingBot:
             self.logging_bot(f"Socket for order is closed", False)
 
     def start_order(self):
-        asyncio.run(self.start_check_order())
-        # asyncio.get_event_loop().run_until_complete(self.start_check_order())
+        # asyncio.run(self.start_check_order())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.start_check_order())
         asyncio.get_event_loop().run_forever()
 
     async def __put_order(self, websocket):
@@ -246,11 +284,16 @@ class BasisTradingBot:
             }
         }
         await websocket.send(json.dumps(msg_order))
-        while websocket.open:
-          message = await websocket.recv()
-          data = json.loads(message)
-          if "order" in data['result']:
-              break
+        # while websocket.open:
+        #   message = await websocket.recv()
+        #   data = json.loads(message)
+        #   if "order" in data['result']:
+        #       break
+        data = await self.__wait_message(websocket, field="order")
+        if data.get('error'):
+            print(f'ERROR in put_order: {data.get("error")}')
+            self.logging_bot(f'ERROR in put_order: {data.get("error")}, parms: {msg_order["params"]}')
+            self.__put_order(websocket)
 
         self.logging_bot(f'Put new order id={data["result"]["order"]["order_id"]},' \
                         + f' price={data["result"]["order"]["price"]},' \
@@ -275,11 +318,12 @@ class BasisTradingBot:
             }
         }
         await websocket.send(json.dumps(msg_cancel))
-        while websocket.open:
-            message = await websocket.recv()
-            data = json.loads(message)
-            if data.get('error') or "order_id" in data.get('result'):
-                break
+        # while websocket.open:
+        #     message = await websocket.recv()
+        #     data = json.loads(message)
+        #     if data.get('error') or "order_id" in data.get('result'):
+        #         break
+        data = await self.__wait_message(websocket, field="order_id")
 
         self.logging_bot(f'Canceling order id={order_info["order_id"]}, price={order_info["price"]}, error={data.get("error")}')
 
@@ -323,11 +367,12 @@ class BasisTradingBot:
             }
         }
         await websocket.send(json.dumps(msg_order))
-        while websocket.open:
-          message = await websocket.recv()
-          data = json.loads(message)
-          if data.get('error') or "order" in data['result']:
-              break
+        # while websocket.open:
+        #   message = await websocket.recv()
+        #   data = json.loads(message)
+        #   if data.get('error') or "order" in data['result']:
+        #       break
+        data = await self.__wait_message(websocket, field="order_id")
 
         if data.get('error'):
             self.logging_bot(f'ERROR in market_order={data.get("error")}', True)
@@ -431,7 +476,7 @@ def main():
             "other_inst": 'ETH-24SEP21',
             "base_side": 'buy',
             "other_side": 'sell',
-            'basis': 14.1,                
+            'basis': 48.,                
             "amount_base": 1.,
             "amount_other": 1.,
             "diff_up": 0.3,
