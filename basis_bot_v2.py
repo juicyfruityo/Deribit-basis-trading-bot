@@ -7,6 +7,7 @@ import logging
 import os
 from queue import Queue
 import my_data
+import numpy as np
 from helpers import *
 
 TEST_URI = 'wss://test.deribit.com/ws/api/v2'
@@ -16,6 +17,7 @@ q_price_base = Queue()  # Передаем цену базового актив�
 q_price_other = Queue()
 q_order_state = Queue()  # Передаем информацию об отслеживаемом ордере
 q_order_monitor = Queue()  # Передаем информаци, какой ордер требуется отслеживать
+global_trade_done = False
 
 
 class BasisTradingBot:
@@ -24,6 +26,11 @@ class BasisTradingBot:
         self.params = params
         self.is_running = False
         self.uri = TEST_URI if test else URI
+        self.msg = {
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": None,
+        }
 
         self.current_orders = {}  # {pair: [order_info]}
         self.current_positions = {}  # {pair: [positions]}
@@ -116,7 +123,7 @@ class BasisTradingBot:
             }
             await websocket.send(json.dumps(msg_data))
 
-            while websocket.open:
+            while websocket.open and global_trade_done is False:
                 message = await websocket.recv()
 
                 if 'params' in message:
@@ -160,7 +167,7 @@ class BasisTradingBot:
             curr_time = time.time()
             if curr_time - self._prev_time >= 10:
                 self._prev_time = curr_time
-                self.logging_bot((f"=== Last_base_price: {self._last_base_price}   Last_other_price: {self._last_other_price}  Basis: {self._basis}"))
+                self.logging_bot((f"=== Last_base_price: {self._last_base_price}   Last_other_price: {self._last_other_price}  Basis: {self._basis}, glob_trade={global_trade_done}"))
 
     def __preprocess_order_state(self, data):
         if self.current_orders.get(self.params['other_inst']) is None:
@@ -180,7 +187,9 @@ class BasisTradingBot:
             while True:
                 print('Start loop for start_check_price')
                 self._loop_start_price.run_until_complete(self.start_check_price())
-                self.logging_bot('loop.run_until_complete() ended')
+                self.logging_bot('loop.run_until_complete() ended in __start_price_looping')
+                if global_trade_done:
+                    break
 
             self.logging_bot('Step out while loop inside start_price')
         except websockets.exceptions.ConnectionClosedOK:
@@ -202,6 +211,8 @@ class BasisTradingBot:
         
         while True:
             self.__start_price_looping()
+            if global_trade_done:
+                break
 
     async def start_check_order(self):
         '''
@@ -230,6 +241,12 @@ class BasisTradingBot:
             }
             await websocket.send(json.dumps(auth_creds))
 
+            if self.params.get('basis_perc') is not None:
+                try:
+                    await self.__calculate_curr_basis(websocket)
+                except Exception as e:
+                    self.logging_bot(f'ERROR in calculating basis {e}')
+
             await self.__put_order(websocket)  # Выставляем начальный ордер.
             trade_done = False
 
@@ -239,7 +256,8 @@ class BasisTradingBot:
                 start = time.time()
                 trade_done, err = await self.__check_order(websocket)
                 if trade_done:
-                    break
+                    # break
+                    return True
                 
                 _iters += 1
                 _exec_times.append(time.time() - start)
@@ -249,13 +267,46 @@ class BasisTradingBot:
                     _exec_times = []
 
             self.logging_bot(f"Socket for order is closed", False)
+            return False
+
+    # def start_order(self):
+    #     # asyncio.run(self.start_check_order())
+    #     loop = asyncio.new_event_loop()
+    #     asyncio.set_event_loop(loop)
+    #     loop.run_until_complete(self.start_check_order())
+    #     asyncio.get_event_loop().run_forever()
+    def __start_order_looping(self):
+        try:
+            while True:
+                print('Start loop for start_check_order')
+                trade_done = self._loop_start_order.run_until_complete(self.start_check_order())
+                self.logging_bot('loop.run_until_complete() ended in __start_order_looping')
+                if trade_done:
+                    return True
+
+            self.logging_bot('Step out while loop inside start_order')
+        except websockets.exceptions.ConnectionClosedOK:
+            e = websockets.exceptions.ConnectionClosedOK
+            print(f'ERROR in start_order: {e}')
+            self.logging_bot(f'\n {"_"*20} \n \t\t\t\t ERROR in start_order: {e} \n {"_"*20} \n')
+
+        except KeyboardInterrupt:            
+            self._loop_start_price.close()
+            self.logging_bot('Close loop in start_order')
 
     def start_order(self):
-        # asyncio.run(self.start_check_order())
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.start_check_order())
-        asyncio.get_event_loop().run_forever()
+        print('Start start_order')
+        self._loop_start_order = None
+        if self._loop_start_order is None:
+            self._loop_start_order = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop_start_order)
+        
+        global global_trade_done
+        while True:
+            trade_done = self.__start_order_looping()
+            if trade_done:
+                global_trade_done = True
+                break
 
     async def __put_order(self, websocket):
         self.logging_bot('In __put_order')
@@ -293,7 +344,9 @@ class BasisTradingBot:
         if data.get('error'):
             print(f'ERROR in put_order: {data.get("error")}')
             self.logging_bot(f'ERROR in put_order: {data.get("error")}, parms: {msg_order["params"]}')
-            self.__put_order(websocket)
+            time.sleep(0.25)
+            await self.__put_order(websocket)
+            return
 
         self.logging_bot(f'Put new order id={data["result"]["order"]["order_id"]},' \
                         + f' price={data["result"]["order"]["price"]},' \
@@ -372,7 +425,7 @@ class BasisTradingBot:
         #   data = json.loads(message)
         #   if data.get('error') or "order" in data['result']:
         #       break
-        data = await self.__wait_message(websocket, field="order_id")
+        data = await self.__wait_message(websocket, field="order")
 
         if data.get('error'):
             self.logging_bot(f'ERROR in market_order={data.get("error")}', True)
@@ -448,6 +501,7 @@ class BasisTradingBot:
                 # TODO: добавить обработку этого момента
                 print('Trade done')
                 return trade_done, err
+            time.sleep(0.15)
             await self.__put_order(websocket)
 
             self.logging_bot('End resetting order')
@@ -464,48 +518,85 @@ class BasisTradingBot:
         # t_price.join()
         # t_order.join()
 
+    async def __calculate_curr_basis(self, websocket):
+        end = round(time.time()) * 1000
+        start = end - (1000 * 60 * 60 * 24) 
+        params =  {
+                "instrument_name": self.params['base_inst'],
+                "start_timestamp": start,
+                "end_timestamp": end,
+                "resolution": 1
+            }
+        self.msg["method"] = "public/get_tradingview_chart_data"
+        self.msg["params"] = params
+        await websocket.send(json.dumps(self.msg))
+        close_base = await self.__wait_message(websocket, field="close")
+        if close_base.get('error'):
+            self.logging_bot(f'ERROR: {close_base["error"]}')
+        close_base = close_base['result']['close']
+
+        params["instrument_name"] = self.params['other_inst']
+        self.msg["params"] = params
+        await websocket.send(json.dumps(self.msg))
+        close_other = await self.__wait_message(websocket, field="close")
+        if close_other.get('error'):
+            self.logging_bot(f'ERROR: {close_other["error"]}')
+        close_other = close_other['result']['close']
+
+        close_basis = (np.array(close_other) - np.array(close_base))
+        fair_basis = 0.5 * close_basis[:180].mean() + 0.25 * close_basis[:720].mean() + 0.25 * close_basis.mean()
+
+        self.logging_bot(f'Current basis stat: basis mean = {round(close_basis.mean(), 2)}' \
+                         + f', basis std = {round(close_basis.std(), 2)}, fair basis = {round(fair_basis, 2)} \n' \
+                         + '\t'*8 + ', '.join([str(x) + ' percentile=' + str(round(np.percentile(close_basis, x), 1)) for x in [5, 15, 25, 75, 85, 95]]))
+
+        self.params['basis'] = round(fair_basis + self.params['basis_perc'] * close_base[-1], 1)
+        self.logging_bot(f'In calculate_curr_basis: basis = {self.params["basis"]}, percent = {self.params["basis_perc"]}')
+
 
 
 def main():
-    bot = BasisTradingBot(
-        "Test1", 
-        params={
-            "name": "Test1",
-            "coin": "ETH",
-            "base_inst": 'ETH-PERPETUAL',
-            "other_inst": 'ETH-24SEP21',
-            "base_side": 'buy',
-            "other_side": 'sell',
-            'basis': 48.,                
-            "amount_base": 1.,
-            "amount_other": 1.,
-            "diff_up": 0.3,
-            "diff_down": 0.8,
-            'client_id': my_data.api_keys[1]["client_id"],
-            'client_secret': my_data.api_keys[1]["client_secret"]
-        },
-        test=False
-    )
-
     # bot = BasisTradingBot(
-    #     "Test2", 
+    #     "Test1", 
     #     params={
-    #         "name": "Test2",
+    #         "name": "Test1",
     #         "coin": "ETH",
     #         "base_inst": 'ETH-PERPETUAL',
     #         "other_inst": 'ETH-24SEP21',
-    #         "base_side": 'sell',
-    #         "other_side": 'buy',
-    #         'basis': 8.1,                
+    #         "base_side": 'buy',
+    #         "other_side": 'sell',
+    #         'basis': 34.,
+    #         'basis_perc': 0.00055, 
     #         "amount_base": 1.,
     #         "amount_other": 1.,
-    #         "diff_up": 0.8,
-    #         "diff_down": 0.3,
-    #         'client_id': my_data.api_keys[0]["client_id"],
-    #         'client_secret': my_data.api_keys[0]["client_secret"]
+    #         "diff_up": 0.5,
+    #         "diff_down": 1,
+    #         'client_id': my_data.api_keys[1]["client_id"],
+    #         'client_secret': my_data.api_keys[1]["client_secret"]
     #     },
     #     test=False
     # )
+
+    bot = BasisTradingBot(
+        "Test2", 
+        params={
+            "name": "Test2",
+            "coin": "ETH",
+            "base_inst": 'ETH-PERPETUAL',
+            "other_inst": 'ETH-24SEP21',
+            "base_side": 'sell',
+            "other_side": 'buy',
+            'basis': 22,
+            'basis_perc': None,              
+            "amount_base": 100.,
+            "amount_other": 100.,
+            "diff_up": 1.5,
+            "diff_down": 0.5,
+            'client_id': my_data.api_keys[0]["client_id"],
+            'client_secret': my_data.api_keys[0]["client_secret"]
+        },
+        test=False
+    )
 
     # asyncio.get_event_loop().run_until_complete(bot.start())
     # loop = asyncio.new_event_loop()
